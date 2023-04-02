@@ -3,10 +3,6 @@ let getCalled = false;
 
 const existingCalls = [];
 
-const {RTCPeerConnection, RTCSessionDescription} = window;
-
-const peerConnection = new RTCPeerConnection();
-
 function unselectUsersFromList() {
     const alreadySelectedUser = document.querySelectorAll(
         ".active-user.active-user--selected"
@@ -40,15 +36,6 @@ function createUserItemContainer(socketId) {
     return userContainerEl;
 }
 
-async function callUser(socketId) {
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-
-    socket.emit("call-user", {
-        offer,
-        to: socketId
-    });
-}
 
 function updateUserList(socketIds) {
     const activeUserContainer = document.getElementById("active-user-container");
@@ -78,85 +65,45 @@ socket.on("remove-user", ({socketId}) => {
 });
 
 socket.on("call-made", async data => {
-    if (getCalled) {
-        const confirmed = confirm(
-            `User "Socket: ${data.socket}" wants to call you. Do accept this call?`
-        );
-
-        if (!confirmed) {
-            socket.emit("reject-call", {
-                from: data.socket
-            });
-
-            return;
-        }
-    }
-
-    await peerConnection.setRemoteDescription(
-        new RTCSessionDescription(data.offer)
-    );
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
-
-    socket.emit("make-answer", {
-        answer,
-        to: data.socket
-    });
-    getCalled = true;
+    console.log("call made", data)
+    const answer = await rtcConn.createAnswer(data.offer)
+    socket.emit("make-answer", {answer, to: data.socket});
 });
 
 socket.on("answer-made", async data => {
-    await peerConnection.setRemoteDescription(
-        new RTCSessionDescription(data.answer)
-    );
-
-    if (!isAlreadyCalling) {
-        callUser(data.socket);
-        isAlreadyCalling = true;
-    }
-});
-
-socket.on("call-rejected", data => {
-    alert(`User: "Socket: ${data.socket}" rejected your call.`);
-    unselectUsersFromList();
+    console.log("answer made", data)
+    await rtcConn.setAnswer(data.answer)
 });
 
 const remoteVideo = document.getElementById("remote-video");
-// peerConnection.ontrack = function ({streams: [stream]}) {
-//     // console.log("ontrack", stream)
-//     if (remoteVideo) {
-//         remoteVideo.srcObject = stream;
-//     }
-// };
-
 const localVideo = document.getElementById("local-video");
-async function beforeAnswer(peerConnection) {
-    const localStream = await window.navigator.mediaDevices.getUserMedia({
-        audio: true,
+let localStream;
+const rtcConn = new RtcConnHandler();
+
+
+async function callUser(socketId) {
+    const offer = await rtcConn.createOffer()
+    console.log("call user", offer)
+    socket.emit("call-user", {
+        offer,
+        to: socketId
+    });
+}
+
+async function start() {
+    localStream = await window.navigator.mediaDevices.getUserMedia({
+        audio: false,
         video: true
     });
     if (localVideo) {
         localVideo.srcObject = localStream;
     }
-    localStream.getTracks().forEach(track => {
-        // peerConnection.addTrack(track, localStream)
-        peerConnection.addTransceiver(track, {direction: 'sendrecv'}    )
-    });
-
-    let mediaStreamTracks = peerConnection.getReceivers().map(receiver => receiver.track);
-    const remoteStream = new MediaStream(mediaStreamTracks);
-    if (remoteVideo) {
-        remoteVideo.srcObject = remoteStream;
-    }
+    rtcConn.addStream(localStream);
 }
 
-beforeAnswer(peerConnection)
+start()
 
 remoteVideo.addEventListener("loadedmetadata", () => {
     console.log("remote loadedmetadata")
-});
-
-peerConnection.addEventListener("connectionstatechange", event => {
-    console.log("connectionstatechange", event)
 });
 
