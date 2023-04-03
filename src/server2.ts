@@ -3,14 +3,14 @@ import socketIO, { Server as SocketIOServer } from "socket.io";
 import { createServer, Server as HTTPServer } from "http";
 import path from "path";
 
-export class Server {
+export class ServerMulti {
   private httpServer: HTTPServer;
   private app: Application;
   private io: SocketIOServer;
 
   private activeSockets: string[] = [];
 
-  private readonly DEFAULT_PORT = 4000;
+  private readonly DEFAULT_PORT = 4001;
 
   constructor() {
     this.initialize();
@@ -38,16 +38,18 @@ export class Server {
 
   private handleSocketConnection(): void {
     this.io.on("connection", socket => {
-      const existingSocket = this.activeSockets.find(
-        existingSocket => existingSocket === socket.id
-      );
+      console.log("New client connected", socket.id)
+      // const existingSocket = this.activeSockets.find(
+      //   existingSocket => existingSocket === socket.id
+      // );
 
-      if (!existingSocket) {
+      // if (!existingSocket) {
+      if (true) {
         this.activeSockets.push(socket.id);
 
         socket.emit("update-user-list", {
           users: this.activeSockets.filter(
-            existingSocket => existingSocket !== socket.id
+              existingSocket => existingSocket !== socket.id
           )
         });
 
@@ -57,7 +59,7 @@ export class Server {
       }
 
       socket.on("call-user", (data: any) => {
-        socket.to(data.to).emit("call-made", {
+        socket.emit("call-made", {
           offer: data.offer,
           socket: socket.id
         });
@@ -65,17 +67,9 @@ export class Server {
 
 
       socket.on("make-answer", data => {
-        socket.to(data.to).emit("answer-made", {
+        socket.emit("answer-made", {
           socket: socket.id,
           answer: data.answer
-        });
-      });
-
-      socket.on("ice-candidate", data => {
-        console.log("ice-candidate received")
-        socket.to(data.to).emit("ice-candidate-post", {
-          socket: socket.id,
-          candidate: data.candidate
         });
       });
 
@@ -84,10 +78,16 @@ export class Server {
           socket: socket.id
         });
       });
-
+      socket.on("ice-candidate", data => {
+        console.log("ice-candidate received")
+        socket.emit("ice-candidate-post", {
+          socket: socket.id,
+          candidate: data.candidate
+        });
+      });
       socket.on("disconnect", () => {
         this.activeSockets = this.activeSockets.filter(
-          existingSocket => existingSocket !== socket.id
+            existingSocket => existingSocket !== socket.id
         );
         socket.broadcast.emit("remove-user", {
           socketId: socket.id

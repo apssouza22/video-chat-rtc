@@ -1,93 +1,63 @@
-function handleCandidate(candidate, dest, prefix, type) {
-    dest.addIceCandidate(candidate)
-        .then(onAddIceCandidateSuccess, onAddIceCandidateError);
-    console.log(`${prefix}New ${type} ICE candidate: ${candidate ? candidate.candidate : '(null)'}`);
-}
-function onAddIceCandidateSuccess() {
-    console.log('AddIceCandidate success.');
-}
-function onAddIceCandidateError(error) {
-    console.log(`Failed to add ICE candidate: ${error.toString()}`);
-}
+
+
 class RtcConnHandler {
+    remoteDesc;
+    ices = [];
+    isCaller = false;
+
     constructor() {
         this.conn = new RTCPeerConnection();
-        this.conn.onicecandidate = (e) => {
-            // if (e.candidate) {
-            //     console.log("ICE Candidate: ", e.candidate);
-            // }
-            handleCandidate(e.candidate, this.conn, 'pc2: ', 'remote');
-        }
-
         this.conn.ontrack = (e) => {
             if (remoteVideo.srcObject !== e.streams[0]) {
                 remoteVideo.srcObject = e.streams[0];
                 console.log('received remote stream');
             }
         }
-        this.conn.ondatachannel = (e) => {
-            // console.log("ondatachannel", e);
-        }
         this.conn.onicecandidateerror = (e) => {
             console.log("onicecandidateerror", e);
         }
-        this.conn.oniceconnectionstatechange = (e) => {
-            // console.log("oniceconnectionstatechange", e);
-        }
-        this.conn.onicegatheringstatechange = (e) => {
-            // console.log("onicegatheringstatechange", e);
-        }
-        this.conn.onsignalingstatechange = (e) => {
-            // console.log("onsignalingstatechange", e);
-        }
-        this.conn.onnegotiationneeded = (e) => {
-            // console.log("onnegotiationneeded", e);
-        }
-        this.conn.onconnectionstatechange = (e) => {
-            // console.log("onconnectionstatechange", e);
-        }
-        this.conn.onstatsended = (e) => {
-            console.log("onstatsended", e);
+    }
+
+    async onIceCandidate(sendCandidate) {
+        this.conn.onicecandidate = async (e) => {
+            sendCandidate(e.candidate);
         }
     }
 
 
     async createOffer() {
-        // const offer = await peerConnection.createOffer( {
-        //     offerToReceiveAudio: true,
-        //     offerToReceiveVideo: true
-        // });
-        // await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-
-        const offer = await this.conn.createOffer( {
-            offerToReceiveAudio: false,
+        // browser 1
+        const offer = await this.conn.createOffer({
+            offerToReceiveAudio: true,
             offerToReceiveVideo: true
         });
         let rtcSessionDescription = new RTCSessionDescription(offer);
-        await this.conn.setLocalDescription(offer);
+        await this.conn.setLocalDescription(rtcSessionDescription);
+        this.isCaller = true;
         return offer;
     }
 
     async createAnswer(offer) {
-        // await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-        // const answer = await peerConnection.createAnswer();
-        // await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
-
+        //browser 2
         let sessionDescription = new RTCSessionDescription(offer);
-        await this.conn.setRemoteDescription(offer);
+        await this.conn.setRemoteDescription(sessionDescription);
 
         const answer = await this.conn.createAnswer();
         let rtcSessionDescription = new RTCSessionDescription(answer);
-        await this.conn.setLocalDescription(answer);
+        await this.conn.setLocalDescription(rtcSessionDescription);
         return answer;
     }
 
     async setAnswer(desc) {
-        // await peerConnection.setRemoteDescription(
-        //     new RTCSessionDescription(data.answer)
-        // );
+        //widnow 1
+        this.remoteDesc = desc;
         let rtcSessionDescription = new RTCSessionDescription(desc);
-        await this.conn.setRemoteDescription(desc);
+        await this.conn.setRemoteDescription(rtcSessionDescription);
+        console.log("atd Candidate: ", this.ices.length);
+        // for (const ice of this.ices) {
+        //     console.log("Add ICE Candidate later: ", ice);
+        //     await this.conn.addIceCandidate(ice);
+        // }
     }
 
     addStream(stream) {
@@ -105,11 +75,23 @@ class RtcConnHandler {
         });
     }
 
-    getRemoteStream() {
-        // return this.conn.getRemoteStreams()[0];
-    }
-
     close() {
         this.conn.close();
+    }
+
+    async addIceCandidate(candidate) {
+        if (this.isCaller && !this.remoteDesc) {
+            this.ices.push(candidate);
+            return;
+        }
+
+        if (this.isCaller && this.remoteDesc) {
+            console.log("Add ice to caller", candidate )
+            await this.conn.addIceCandidate(candidate);
+            return
+        }
+
+        console.log("Add ice to called", candidate )
+        await this.conn.addIceCandidate(candidate);
     }
 }
