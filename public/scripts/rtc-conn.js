@@ -1,18 +1,8 @@
 class RtcConnHandler {
-    remoteDesc;
-    ices = [];
-    isCaller = false;
-    eventHandlers = {
-        ontrack: (e) => {
-            console.log("onTrack", e);
-        },
-        onicecandidate: (e) => {
-            console.log("onicecandidate", e);
-        },
-        onicecandidateerror: (e) => {
-            console.log("onicecandidateerror", e);
-        }
-    }
+    #hasAnswerReceived;
+    #ices = [];
+    #isCaller = false;
+    #eventHandlers = {}
 
     constructor() {
         const servers = {
@@ -25,39 +15,37 @@ class RtcConnHandler {
         };
         this.conn = new RTCPeerConnection(servers);
         this.conn.ontrack = (e) => {
-            this.eventHandlers["ontrack"](e.streams[0]);
+            this.#eventHandlers["ontrack"](e.streams[0]);
         }
         this.conn.onicecandidateerror = (e) => {
-            this.eventHandlers["onicecandidate"](e);
+            this.#eventHandlers["onicecandidate"](e);
         }
         this.conn.onicecandidate = (e) => {
-            this.eventHandlers["onicecandidate"](e.candidate);
+            this.#eventHandlers["onicecandidate"](e.candidate);
         }
     }
 
     onTrack(sendTrack) {
-        this.eventHandlers["ontrack"] = sendTrack;
+        this.#eventHandlers["ontrack"] = sendTrack;
     }
 
     onIceCandidate(sendCandidate) {
-        this.eventHandlers["onicecandidate"] = sendCandidate;
+        this.#eventHandlers["onicecandidate"] = sendCandidate;
     }
 
 
     async createOffer() {
-        // browser 1
         const offer = await this.conn.createOffer({
             offerToReceiveAudio: true,
             offerToReceiveVideo: true
         });
         let rtcSessionDescription = new RTCSessionDescription(offer);
         await this.conn.setLocalDescription(rtcSessionDescription);
-        this.isCaller = true;
+        this.#isCaller = true;
         return offer;
     }
 
     async createAnswer(offer) {
-        //browser 2
         let sessionDescription = new RTCSessionDescription(offer);
         await this.conn.setRemoteDescription(sessionDescription);
 
@@ -68,8 +56,7 @@ class RtcConnHandler {
     }
 
     async setAnswer(desc) {
-        //widnow 1
-        this.remoteDesc = desc;
+        this.#hasAnswerReceived = desc;
         let rtcSessionDescription = new RTCSessionDescription(desc);
         await this.conn.setRemoteDescription(rtcSessionDescription);
     }
@@ -94,12 +81,12 @@ class RtcConnHandler {
     }
 
     async addIceCandidate(candidate) {
-        if (this.isCaller && !this.remoteDesc) {
-            this.ices.push(candidate);
+        if (this.#isCaller && !this.#hasAnswerReceived) {
+            this.#ices.push(candidate);
             return;
         }
 
-        if (this.isCaller && this.remoteDesc) {
+        if (this.#isCaller && this.#hasAnswerReceived) {
             await this.conn.addIceCandidate(candidate);
             return
         }

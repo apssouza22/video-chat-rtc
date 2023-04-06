@@ -2,29 +2,14 @@ class VideoChatApp {
     #userListComponent;
     #remoteVideo;
     #localUserMediaStream;
+    #rtcConns = [];
 
     constructor(config) {
         this.localVideo = config.localVideo;
-        this.setUpUserListComponent(config.userListComponent);
         this.socket = config.socket;
         this.#remoteVideo = config.remoteVideo;
-        this.addSocketListeners();
-    }
-
-    #createRtcConnection(remoteVideo, socketId) {
-        this.rtcConn = new RtcConnHandler();
-        this.rtcConn.onTrack((stream) => {
-            if (remoteVideo.srcObject !== stream) {
-                remoteVideo.srcObject = stream;
-                console.log('received remote stream');
-            }
-        });
-        this.rtcConn.onIceCandidate((candidate) => {
-            if (candidate) {
-                this.socket.emit("ice-candidate", {candidate, to: socketId});
-            }
-        });
-        this.rtcConn.addStream(this.#localUserMediaStream);
+        this.#setUpUserListComponent(config.userListComponent);
+        this.#addSocketListeners();
     }
 
     async start() {
@@ -36,27 +21,45 @@ class VideoChatApp {
         this.#localUserMediaStream = localUserMediaStream;
     }
 
+    #createRtcConnection(remoteVideo, socketId) {
+        let rtcConn = new RtcConnHandler();
+        rtcConn.onTrack((stream) => {
+            if (remoteVideo.srcObject !== stream) {
+                remoteVideo.srcObject = stream;
+                console.log('received remote stream');
+            }
+        });
+        rtcConn.onIceCandidate((candidate) => {
+            if (candidate) {
+                this.socket.emit("ice-candidate", {candidate, to: socketId});
+            }
+        });
+        rtcConn.addStream(this.#localUserMediaStream);
+        this.#rtcConns.push(rtcConn);
+        return rtcConn;
+    }
+
     async #callUser(socketId) {
-        this.#createRtcConnection(this.#remoteVideo, socketId)
-        const offer = await this.rtcConn.createOffer()
+        let rtcConn = this.#createRtcConnection(this.#remoteVideo, socketId)
+        const offer = await rtcConn.createOffer()
         console.log("call user", offer)
         this.socket.emit("call-user", {offer, to: socketId});
     }
 
-    setUpUserListComponent(userListComponent) {
+    #setUpUserListComponent(userListComponent) {
         userListComponent.addEventListener(userListComponent.USER_CLICKED_EVENT, this.#callUser.bind(this));
         this.#userListComponent = userListComponent;
     }
 
-    addSocketListeners() {
-        this.socket.on("call-made", this.onCallMade.bind(this));
+    #addSocketListeners() {
+        this.socket.on("call-made", this.#onCallMade.bind(this));
         this.socket.on("answer-made", async data => {
             console.log("answer made", data)
-            await this.rtcConn.setAnswer(data.answer)
+            await this.#rtcConns.forEach(c => c.setAnswer(data.answer));
         });
 
         this.socket.on("ice-candidate-post", async data => {
-            await this.rtcConn.addIceCandidate(data.candidate)
+            await this.#rtcConns.forEach(c => c.addIceCandidate(data.candidate));
         });
 
         this.socket.on("update-user-list", ({users}) => {
@@ -71,10 +74,10 @@ class VideoChatApp {
         });
     }
 
-    async onCallMade(data) {
+    async #onCallMade(data) {
         console.log("call made", data)
-        this.#createRtcConnection(this.#remoteVideo, data.socket)
-        const answer = await this.rtcConn.createAnswer(data.offer)
+        let rtcConn = this.#createRtcConnection(this.#remoteVideo, data.socket)
+        const answer = await rtcConn.createAnswer(data.offer)
         this.socket.emit("make-answer", {answer, to: data.socket});
     }
 }
