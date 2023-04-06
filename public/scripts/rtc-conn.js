@@ -5,7 +5,7 @@ class RtcConnHandler {
     ices = [];
     isCaller = false;
 
-    constructor() {
+    constructor(remoteVideo) {
         const servers = {
             iceServers: [
                 {
@@ -61,11 +61,6 @@ class RtcConnHandler {
         this.remoteDesc = desc;
         let rtcSessionDescription = new RTCSessionDescription(desc);
         await this.conn.setRemoteDescription(rtcSessionDescription);
-        console.log("atd Candidate: ", this.ices.length);
-        // for (const ice of this.ices) {
-        //     console.log("Add ICE Candidate later: ", ice);
-        //     await this.conn.addIceCandidate(ice);
-        // }
     }
 
     addStream(stream) {
@@ -94,12 +89,9 @@ class RtcConnHandler {
         }
 
         if (this.isCaller && this.remoteDesc) {
-            console.log("Add ice to caller", candidate )
             await this.conn.addIceCandidate(candidate);
             return
         }
-
-        console.log("Add ice to called", candidate )
         await this.conn.addIceCandidate(candidate);
     }
 }
