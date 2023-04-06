@@ -72,7 +72,6 @@ export class Server {
       });
 
       socket.on("ice-candidate", data => {
-        console.log("ice-candidate received")
         socket.to(data.to).emit("ice-candidate-post", {
           socket: socket.id,
           candidate: data.candidate

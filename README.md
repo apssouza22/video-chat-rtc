@@ -1,9 +1,19 @@
-# simple-chat-app
+# Video-chat-app
 
-first run the servers 4000 and 40001 - `npm start`
+This is a video chat app using WebRTC and WebSockets. It is built using Node.js, Express, and Socket.io.
 
-- Multi connection in the same browser use the http://localhost:4001/simple-chat-app/public/multi.html
 
-- Multi connection in the different browsers use the http://localhost:4001/simple-chat-app/public/index.html 
+## Getting started
+- `npm install`
+- `npm start`
+- Access the http://localhost:4000 from two different browsers
+- Click on the one of the active users to start a video chat
+
+## WebRTC Flow
+<img src="webrtc-flow.jpeg">
+
+## Video Chat App
+<img src="video-chat.png">
+
 
 
