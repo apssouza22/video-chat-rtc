@@ -6,7 +6,15 @@ class RtcConnHandler {
     isCaller = false;
 
     constructor() {
-        this.conn = new RTCPeerConnection();
+        const servers = {
+            iceServers: [
+                {
+                    urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+                },
+            ],
+            iceCandidatePoolSize: 10,
+        };
+        this.conn = new RTCPeerConnection(servers );
         this.conn.ontrack = (e) => {
             if (remoteVideo.srcObject !== e.streams[0]) {
                 remoteVideo.srcObject = e.streams[0];
