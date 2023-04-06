@@ -1,11 +1,20 @@
-
-
 class RtcConnHandler {
     remoteDesc;
     ices = [];
     isCaller = false;
+    eventHandlers = {
+        ontrack: (e) => {
+            console.log("onTrack", e);
+        },
+        onicecandidate: (e) => {
+            console.log("onicecandidate", e);
+        },
+        onicecandidateerror: (e) => {
+            console.log("onicecandidateerror", e);
+        }
+    }
 
-    constructor(remoteVideo) {
+    constructor() {
         const servers = {
             iceServers: [
                 {
@@ -14,22 +23,24 @@ class RtcConnHandler {
             ],
             iceCandidatePoolSize: 10,
         };
-        this.conn = new RTCPeerConnection(servers );
+        this.conn = new RTCPeerConnection(servers);
         this.conn.ontrack = (e) => {
-            if (remoteVideo.srcObject !== e.streams[0]) {
-                remoteVideo.srcObject = e.streams[0];
-                console.log('received remote stream');
-            }
+            this.eventHandlers["ontrack"](e.streams[0]);
         }
         this.conn.onicecandidateerror = (e) => {
-            console.log("onicecandidateerror", e);
+            this.eventHandlers["onicecandidate"](e);
+        }
+        this.conn.onicecandidate = (e) => {
+            this.eventHandlers["onicecandidate"](e.candidate);
         }
     }
 
-    async onIceCandidate(sendCandidate) {
-        this.conn.onicecandidate = async (e) => {
-            sendCandidate(e.candidate);
-        }
+    onTrack(sendTrack) {
+        this.eventHandlers["ontrack"] = sendTrack;
+    }
+
+    onIceCandidate(sendCandidate) {
+        this.eventHandlers["onicecandidate"] = sendCandidate;
     }
 
 
