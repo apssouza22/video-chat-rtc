@@ -2,7 +2,11 @@ class RtcConnHandler {
     #hasAnswerReceived;
     #ices = [];
     #isCaller = false;
-    #eventHandlers = {}
+    #eventHandlers = {
+        onicecandidateerror: (e) => {
+            console.log(e);
+        }
+    }
 
     constructor() {
         const servers = {
@@ -13,20 +17,20 @@ class RtcConnHandler {
             ],
             iceCandidatePoolSize: 10,
         };
-        this.conn = new RTCPeerConnection(servers);
-        this.conn.ontrack = (e) => {
+        this.rtcConn = new RTCPeerConnection(servers);
+        this.rtcConn.ontrack = (e) => {
             this.#eventHandlers["ontrack"](e.streams[0]);
         }
-        this.conn.onicecandidateerror = (e) => {
-            this.#eventHandlers["onicecandidate"](e);
+        this.rtcConn.onicecandidateerror = (e) => {
+            this.#eventHandlers["onicecandidateerror"](e);
         }
-        this.conn.onicecandidate = (e) => {
+        this.rtcConn.onicecandidate = (e) => {
             this.#eventHandlers["onicecandidate"](e.candidate);
         }
     }
 
-    onTrack(sendTrack) {
-        this.#eventHandlers["ontrack"] = sendTrack;
+    onTrack(trackListener) {
+        this.#eventHandlers["ontrack"] = trackListener;
     }
 
     onIceCandidate(sendCandidate) {
@@ -35,35 +39,39 @@ class RtcConnHandler {
 
 
     async createOffer() {
-        const offer = await this.conn.createOffer({
+        const offer = await this.rtcConn.createOffer({
             offerToReceiveAudio: true,
             offerToReceiveVideo: true
         });
         let rtcSessionDescription = new RTCSessionDescription(offer);
-        await this.conn.setLocalDescription(rtcSessionDescription);
+        await this.rtcConn.setLocalDescription(rtcSessionDescription);
         this.#isCaller = true;
         return offer;
     }
 
     async createAnswer(offer) {
         let sessionDescription = new RTCSessionDescription(offer);
-        await this.conn.setRemoteDescription(sessionDescription);
+        await this.rtcConn.setRemoteDescription(sessionDescription);
 
-        const answer = await this.conn.createAnswer();
+        const answer = await this.rtcConn.createAnswer();
         let rtcSessionDescription = new RTCSessionDescription(answer);
-        await this.conn.setLocalDescription(rtcSessionDescription);
+        await this.rtcConn.setLocalDescription(rtcSessionDescription);
         return answer;
     }
 
     async setAnswer(desc) {
         this.#hasAnswerReceived = desc;
         let rtcSessionDescription = new RTCSessionDescription(desc);
-        await this.conn.setRemoteDescription(rtcSessionDescription);
+        await this.rtcConn.setRemoteDescription(rtcSessionDescription);
     }
 
-    addStream(stream) {
-        const audioTracks = stream.getAudioTracks();
-        const videoTracks = stream.getVideoTracks();
+    /**
+     *
+     * @param {MediaStream} userUserMediaStream
+     */
+    addStream(userUserMediaStream) {
+        const audioTracks = userUserMediaStream.getAudioTracks();
+        const videoTracks = userUserMediaStream.getVideoTracks();
         for (const audioTrack of audioTracks) {
             console.log(`Using audio device: ${audioTrack.label}`);
         }
@@ -71,25 +79,24 @@ class RtcConnHandler {
             console.log(`Using video device: ${videoTrack.label}`);
         }
 
-        stream.getTracks().forEach(track => {
-            this.conn.addTrack(track, stream)
+        userUserMediaStream.getTracks().forEach(track => {
+            this.rtcConn.addTrack(track, userUserMediaStream)
         });
     }
 
     close() {
-        this.conn.close();
+        this.rtcConn.close();
     }
 
     async addIceCandidate(candidate) {
         if (this.#isCaller && !this.#hasAnswerReceived) {
-            this.#ices.push(candidate);
             return;
         }
 
         if (this.#isCaller && this.#hasAnswerReceived) {
-            await this.conn.addIceCandidate(candidate);
+            await this.rtcConn.addIceCandidate(candidate);
             return
         }
-        await this.conn.addIceCandidate(candidate);
+        await this.rtcConn.addIceCandidate(candidate);
     }
 }

@@ -55,17 +55,23 @@ class VideoChatApp {
         this.socket.on("call-made", this.#onCallMade.bind(this));
         this.socket.on("answer-made", async data => {
             console.log("answer made", data)
-            await this.#rtcConns.forEach(c => c.setAnswer(data.answer));
+            try {
+                await this.#rtcConns.forEach(c => c.setAnswer(data.answer));
+            } catch (e) {
+                console.log(e)
+            }
         });
-
         this.socket.on("ice-candidate-post", async data => {
-            await this.#rtcConns.forEach(c => c.addIceCandidate(data.candidate));
+            try {
+                await this.#rtcConns.forEach(c => c.addIceCandidate(data.candidate));
+            } catch (e) {
+                console.log(e)
+            }
         });
 
         this.socket.on("update-user-list", ({users}) => {
             this.#userListComponent.updateUserList(users);
         });
-
         this.socket.on("remove-user", ({socketId}) => {
             const elToRemove = document.getElementById(socketId);
             if (elToRemove) {
