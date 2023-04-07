@@ -62,10 +62,13 @@ class VideoChatApp {
             }
         });
         this.socket.on("ice-candidate-post", async data => {
-            try {
-                await this.#rtcConns.forEach(c => c.addIceCandidate(data.candidate));
-            } catch (e) {
-                console.log(e)
+            for (let i = this.#rtcConns.length; i > 0; i--) {
+                try {
+                    await this.#rtcConns[i].addIceCandidate(data.candidate)
+                } catch (e) {
+                    // Remove the connection if it fails
+                    this.#rtcConns.splice(i, 1)
+                }
             }
         });
 
