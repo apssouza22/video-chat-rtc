@@ -62,11 +62,12 @@ class VideoChatApp {
             }
         });
         this.socket.on("ice-candidate-post", async data => {
-            for (let i = this.#rtcConns.length; i > 0; i--) {
+            for (let i = this.#rtcConns.length -1; i >= 0; i--) {
                 try {
                     await this.#rtcConns[i].addIceCandidate(data.candidate)
                 } catch (e) {
                     // Remove the connection if it fails
+                    console.log("failed to add ice candidate -  removing connection",e)
                     this.#rtcConns.splice(i, 1)
                 }
             }
@@ -149,6 +150,7 @@ class UserListComponent {
 let app = new VideoChatApp({
     localVideo: document.getElementById("local-video"),
     remoteVideo: document.getElementById("remote-video"),
+    // remoteVideo: document.getElementById("remote-audio"), We can use this for audio as well
     userListComponent: new UserListComponent(document.getElementById("active-user-container")),
     socket: io.connect("localhost:4000")
 });
