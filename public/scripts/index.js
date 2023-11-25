@@ -152,7 +152,7 @@ let app = new VideoChatApp({
     remoteVideo: document.getElementById("remote-video"),
     // remoteVideo: document.getElementById("remote-audio"), We can use this for audio as well
     userListComponent: new UserListComponent(document.getElementById("active-user-container")),
-    socket: io.connect("localhost:4000")
+    socket: io.connect("localhost:881")
 });
 app.start();
 
