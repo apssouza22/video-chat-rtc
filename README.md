@@ -2,6 +2,11 @@
 
 This is a video chat app using WebRTC and WebSockets. It is built using Node.js, Express, and Socket.io.
 
+We implemented a signaling server using Socket.io to exchange the WebRTC signaling messages (offer, answer, and candidate) between the peers. 
+The signaling server is also responsible for broadcasting the list of active users to all connected users.
+
+The WebRTC peer-to-peer communication requires an ICE server to establish a connection between the peers. In this app, we used the Google STUN server.
+
 
 ## Getting started
 - `npm install`
