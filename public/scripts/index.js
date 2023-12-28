@@ -21,6 +21,18 @@ class VideoChatApp {
         this.#localUserMediaStream = localUserMediaStream;
     }
 
+    async shareScreen() {
+        let localUserMediaStream = await window.navigator.mediaDevices.getDisplayMedia({
+            audio: false,
+            video: {
+                cursor: "always",
+                displaySurface: "monitor"
+            }
+        });
+        this.localVideo.srcObject = localUserMediaStream;
+        this.#localUserMediaStream = localUserMediaStream;
+    }
+
     #createRtcConnection(remoteVideo, socketId) {
         let rtcConn = new RtcConnHandler();
         rtcConn.onTrack((stream) => {
@@ -62,12 +74,12 @@ class VideoChatApp {
             }
         });
         this.socket.on("ice-candidate-post", async data => {
-            for (let i = this.#rtcConns.length -1; i >= 0; i--) {
+            for (let i = this.#rtcConns.length - 1; i >= 0; i--) {
                 try {
                     await this.#rtcConns[i].addIceCandidate(data.candidate)
                 } catch (e) {
                     // Remove the connection if it fails
-                    console.log("failed to add ice candidate -  removing connection",e)
+                    console.log("failed to add ice candidate -  removing connection", e)
                     this.#rtcConns.splice(i, 1)
                 }
             }
@@ -144,6 +156,14 @@ class UserListComponent {
             this.#eventListeners[this.USER_CLICKED_EVENT](socketId);
         });
         return userContainerEl;
+    }
+}
+
+async function shareScreen() {
+    try {
+        await app.shareScreen();
+    } catch (e) {
+        console.log(e)
     }
 }
 
