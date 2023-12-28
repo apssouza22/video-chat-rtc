@@ -3,10 +3,12 @@ class VideoChatApp {
     #remoteVideo;
     #localUserMediaStream;
     #rtcConns = [];
+    #localVideo;
+    #socket;
 
     constructor(config) {
-        this.localVideo = config.localVideo;
-        this.socket = config.socket;
+        this.#localVideo = config.localVideo;
+        this.#socket = config.socket;
         this.#remoteVideo = config.remoteVideo;
         this.#setUpUserListComponent(config.userListComponent);
         this.#addSocketListeners();
@@ -17,8 +19,30 @@ class VideoChatApp {
             audio: true,
             video: true
         });
-        this.localVideo.srcObject = localUserMediaStream;
+        this.#localVideo.srcObject = localUserMediaStream;
         this.#localUserMediaStream = localUserMediaStream;
+    }
+
+    async shareScreen() {
+        let localUserMediaStream = await window.navigator.mediaDevices.getDisplayMedia({
+            audio: false,
+            video: {
+                cursor: "always",
+                displaySurface: "monitor"
+            }
+        });
+
+        this.#rtcConns.forEach(c => {
+            let screenVideoTrack = localUserMediaStream.getVideoTracks()[0];
+            screenVideoTrack.onended = () => {
+                console.log("Stopped sharing screen")
+                let cameraVideoTrack = this.#localUserMediaStream.getVideoTracks()[0];
+                this.#localVideo.srcObject = this.#localUserMediaStream;
+                c.replaceTrack(cameraVideoTrack);
+            }
+            c.replaceTrack(screenVideoTrack)
+        });
+        this.#localVideo.srcObject = localUserMediaStream;
     }
 
     #createRtcConnection(remoteVideo, socketId) {
@@ -31,7 +55,7 @@ class VideoChatApp {
         });
         rtcConn.onIceCandidate((candidate) => {
             if (candidate) {
-                this.socket.emit("ice-candidate", {candidate, to: socketId});
+                this.#socket.emit("ice-candidate", {candidate, to: socketId});
             }
         });
         rtcConn.addStream(this.#localUserMediaStream);
@@ -43,7 +67,7 @@ class VideoChatApp {
         let rtcConn = this.#createRtcConnection(this.#remoteVideo, socketId)
         const offer = await rtcConn.createOffer()
         console.log("call user", offer)
-        this.socket.emit("call-user", {offer, to: socketId});
+        this.#socket.emit("call-user", {offer, to: socketId});
     }
 
     #setUpUserListComponent(userListComponent) {
@@ -52,8 +76,8 @@ class VideoChatApp {
     }
 
     #addSocketListeners() {
-        this.socket.on("call-made", this.#onCallMade.bind(this));
-        this.socket.on("answer-made", async data => {
+        this.#socket.on("call-made", this.#onCallMade.bind(this));
+        this.#socket.on("answer-made", async data => {
             console.log("answer made", data)
             try {
                 await this.#rtcConns.forEach(c => c.setAnswer(data.answer));
@@ -61,22 +85,22 @@ class VideoChatApp {
                 console.log(e)
             }
         });
-        this.socket.on("ice-candidate-post", async data => {
-            for (let i = this.#rtcConns.length -1; i >= 0; i--) {
+        this.#socket.on("ice-candidate-post", async data => {
+            for (let i = this.#rtcConns.length - 1; i >= 0; i--) {
                 try {
                     await this.#rtcConns[i].addIceCandidate(data.candidate)
                 } catch (e) {
                     // Remove the connection if it fails
-                    console.log("failed to add ice candidate -  removing connection",e)
+                    console.log("failed to add ice candidate -  removing connection", e)
                     this.#rtcConns.splice(i, 1)
                 }
             }
         });
 
-        this.socket.on("update-user-list", ({users}) => {
+        this.#socket.on("update-user-list", ({users}) => {
             this.#userListComponent.updateUserList(users);
         });
-        this.socket.on("remove-user", ({socketId}) => {
+        this.#socket.on("remove-user", ({socketId}) => {
             const elToRemove = document.getElementById(socketId);
             if (elToRemove) {
                 elToRemove.remove();
@@ -88,7 +112,7 @@ class VideoChatApp {
         console.log("call made", data)
         let rtcConn = this.#createRtcConnection(this.#remoteVideo, data.socket)
         const answer = await rtcConn.createAnswer(data.offer)
-        this.socket.emit("make-answer", {answer, to: data.socket});
+        this.#socket.emit("make-answer", {answer, to: data.socket});
     }
 }
 
@@ -144,6 +168,14 @@ class UserListComponent {
             this.#eventListeners[this.USER_CLICKED_EVENT](socketId);
         });
         return userContainerEl;
+    }
+}
+
+async function shareScreen() {
+    try {
+        await app.shareScreen();
+    } catch (e) {
+        console.log(e)
     }
 }
 
