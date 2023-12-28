@@ -82,6 +82,20 @@ class RtcConnHandler {
         });
     }
 
+    /**
+     * Replace the track of the same kind with the new track
+     * Used to replace the current video stream with something else. Ex screen sharing
+     *
+     * @param {MediaStreamTrack} track
+     */
+    replaceTrack(track) {
+        this.rtcConn.getSenders().forEach(async sender => {
+            if (sender.track.kind === track.kind) {
+                await sender.replaceTrack(track);
+            }
+        });
+    }
+
     close() {
         this.rtcConn.close();
     }
