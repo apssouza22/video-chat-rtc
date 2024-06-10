@@ -7,6 +7,8 @@ The signaling server is also responsible for broadcasting the list of active use
 
 The WebRTC peer-to-peer communication requires an ICE server to establish a connection between the peers. In this app, we used the Google STUN server.
 
+## Live Demo
+You can try the UI [here](https://apssouza22.github.io/video-chat-rtc/public/)    
 
 ## Getting started
 - `npm install`
