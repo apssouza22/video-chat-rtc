@@ -4,6 +4,9 @@ class VideoChatApp {
     #localUserMediaStream;
     #rtcConns = [];
     #localVideo;
+    /**
+     * @type {SocketIo}
+     */
     #socket;
 
     constructor(config) {
@@ -184,7 +187,7 @@ let app = new VideoChatApp({
     remoteVideo: document.getElementById("remote-video"),
     // remoteVideo: document.getElementById("remote-audio"), We can use this for audio as well
     userListComponent: new UserListComponent(document.getElementById("active-user-container")),
-    socket: io.connect("localhost:8881")
+    socket: new SocketIo(new WebSocket('ws://localhost:8881/ws'))
 });
 app.start();
 

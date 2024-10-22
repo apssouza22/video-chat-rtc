@@ -4,20 +4,30 @@ import json
 import logging
 import os
 import ssl
-import uuid
 
 from aiohttp import web
-from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
+from aiortc.contrib.media import MediaPlayer, MediaRecorder
+import aiohttp_cors
 
-from stream_handle import StreamHandler
 from rtcconn import RTCConnectionHandler
-from video_transform import VideoTransformTrack
+from stream_handle import StreamHandler
+from websocket import websocket_handler
 
 ROOT = os.path.dirname(__file__)
 
 logger = logging.getLogger("pc")
 pcs = set()
 
+def set_cors(my_app, offer_route):
+    cors = aiohttp_cors.setup(my_app)
+    cors.add(offer_route, {
+        "*": aiohttp_cors.ResourceOptions(
+            allow_credentials=True,
+            expose_headers=("X-Custom-Server-Header",),
+            allow_headers=("X-Requested-With", "Content-Type"),
+            max_age=3600,
+        )
+    })
 
 async def index(request):
     content = open(os.path.join(ROOT, "index.html"), "r").read()
@@ -58,7 +68,23 @@ async def on_shutdown(app):
     pcs.clear()
 
 
-if __name__ == "__main__":
+def setup_webserver(params):
+    app = web.Application()
+    app.on_shutdown.append(on_shutdown)
+    app.router.add_static('/', path=os.path.join(ROOT, '../public'), name='public')
+
+    root_route = app.router.add_get("/example", index)
+    app.router.add_get("/ws", websocket_handler)
+    app.router.add_get("/client.js", javascript)
+    app.router.add_post("/offer", offer)
+    set_cors(app, root_route)
+    web.run_app(
+        app, access_log=None, host=params.host, port=params.port, ssl_context=ssl_context
+    )
+
+
+def handle_args():
+    global args, ssl_context
     parser = argparse.ArgumentParser(
         description="WebRTC audio / video / data-channels demo"
     )
@@ -68,28 +94,22 @@ if __name__ == "__main__":
         "--host", default="0.0.0.0", help="Host for HTTP server (default: 0.0.0.0)"
     )
     parser.add_argument(
-        "--port", type=int, default=8080, help="Port for HTTP server (default: 8080)"
+        "--port", type=int, default=8881, help="Port for HTTP server (default: 8881)"
     )
     parser.add_argument("--record-to", help="Write received media to a file.")
     parser.add_argument("--verbose", "-v", action="count")
     args = parser.parse_args()
-
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
-
     if args.cert_file:
         ssl_context = ssl.SSLContext()
         ssl_context.load_cert_chain(args.cert_file, args.key_file)
     else:
         ssl_context = None
+    return args
 
-    app = web.Application()
-    app.on_shutdown.append(on_shutdown)
-    app.router.add_get("/", index)
-    app.router.add_get("/client.js", javascript)
-    app.router.add_post("/offer", offer)
-    web.run_app(
-        app, access_log=None, host=args.host, port=args.port, ssl_context=ssl_context
-    )
+if __name__ == "__main__":
+    params = handle_args()
+    setup_webserver(params)
