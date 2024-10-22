@@ -42,7 +42,7 @@ class RTCConnectionHandler:
             self.on_message_fn(message, channel)
 
     async def _on_connectionstatechange(self):
-        self.on_connection_state_change_fn()
+        await self.on_connection_state_change_fn()
 
 
     def _on_track(self, track):
@@ -50,7 +50,7 @@ class RTCConnectionHandler:
 
         @track.on("ended")
         async def on_ended():
-            self.on_track_end_fn(track)
+            await self.on_track_end_fn(track)
 
     async def create_answer(self, offer_request: dict[str, str]):
         offer = RTCSessionDescription(sdp=offer_request["sdp"], type=offer_request["type"])

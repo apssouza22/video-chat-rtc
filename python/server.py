@@ -9,6 +9,7 @@ import uuid
 from aiohttp import web
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
 
+from stream_handle import StreamHandler
 from rtcconn import RTCConnectionHandler
 from video_transform import VideoTransformTrack
 
@@ -16,7 +17,6 @@ ROOT = os.path.dirname(__file__)
 
 logger = logging.getLogger("pc")
 pcs = set()
-relay = MediaRelay()
 
 
 async def index(request):
@@ -32,56 +32,16 @@ async def javascript(request):
 async def offer(request):
     params = await request.json()
     rtc = RTCConnectionHandler()
-
-    pc = rtc.conn
-    pc_id = "PeerConnection(%s)" % uuid.uuid4()
-    pcs.add(pc)
-
-    def log_info(msg, *args):
-        logger.info(pc_id + " " + msg, *args)
-
-    log_info("Created for %s", request.remote)
+    stream = StreamHandler(rtc)
+    pcs.add(stream)
     player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
-    if args.record_to:
-        recorder = MediaRecorder(args.record_to)
-    else:
-        recorder = MediaBlackhole()
-
-    def on_message(message, channel):
-        if isinstance(message, str) and message.startswith("ping"):
-            channel.send("pong" + message[4:])
-
-    async def on_connectionstatechange():
-        log_info("Connection state is %s", pc.connectionState)
-        if pc.connectionState == "failed":
-            await pc.close()
-            pcs.discard(pc)
-
-    def on_track(track):
-        log_info("Track %s received", track.kind)
-
-        if track.kind == "audio":
-            pc.addTrack(player.audio)
-            recorder.addTrack(track)
-
-        elif track.kind == "video":
-            # Duplicate incoming video track so different transforms can be applied
-            track1 = relay.subscribe(track)
-            track2 = relay.subscribe(track)
-            pc.addTrack(VideoTransformTrack(track1, transform=params["video_transform"]))
-            if args.record_to:
-                recorder.addTrack(track2)
-
-    async def on_ended(track):
-        log_info("Track %s ended", track.kind)
-        await recorder.stop()
-
-    rtc.add_on_track(on_track)
-    rtc.add_on_message(on_message)
-    rtc.add_on_track_end(on_ended)
-    rtc.add_on_connection_state_change(on_connectionstatechange)
-    answer = await rtc.create_answer(params)
-    await recorder.start()
+    file = os.path.join(ROOT, "video.mp4")
+    print(file)
+    recorder = MediaRecorder(file)
+    # recorder = MediaBlackhole()
+    stream.set_media_player(player)
+    stream.set_media_recorder(recorder)
+    answer = await stream.start(params)
 
     return web.Response(
         content_type="application/json",
