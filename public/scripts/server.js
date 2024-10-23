@@ -6,7 +6,6 @@ class ServerConnHandler {
         this.#localUserMediaStream = userMediaStream;
     }
 
-
     #createRtcConnection(videoOutput, audioOutput) {
         const rtcConn = new RtcConnHandler({});
         rtcConn.onTrack((evt) => {
@@ -14,6 +13,7 @@ class ServerConnHandler {
                 videoOutput.srcObject = evt.streams[0];
                 return
             }
+
             //TODO: Disabled audio output for now.
             // audioOutput.srcObject = evt.streams[0];
 

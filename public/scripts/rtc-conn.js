@@ -63,7 +63,6 @@ class RtcConnHandler {
         this.#eventHandlers["onicecandidate"] = sendCandidate;
     }
 
-
     async createOffer() {
         const offer = await this.rtcConn.createOffer({
             offerToReceiveAudio: true,
