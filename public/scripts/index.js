@@ -49,7 +49,7 @@ class VideoChatApp {
     }
 
     #createRtcConnection(remoteVideo, socketId) {
-        let rtcConn = new RtcConnHandler();
+        let rtcConn = new RtcConnHandler({});
         rtcConn.onTrack((stream) => {
             if (remoteVideo.srcObject !== stream) {
                 remoteVideo.srcObject = stream;

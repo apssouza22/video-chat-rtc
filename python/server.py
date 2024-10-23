@@ -99,10 +99,7 @@ def handle_args():
     parser.add_argument("--record-to", help="Write received media to a file.")
     parser.add_argument("--verbose", "-v", action="count")
     args = parser.parse_args()
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)
     if args.cert_file:
         ssl_context = ssl.SSLContext()
         ssl_context.load_cert_chain(args.cert_file, args.key_file)

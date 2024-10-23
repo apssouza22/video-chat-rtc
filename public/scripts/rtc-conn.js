@@ -1,6 +1,8 @@
 class RtcConnHandler {
     #hasAnswerReceived;
-    #ices = ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'];
+    // STUN is a lightweight protocol that is used to discover the Public IP address and Port number of a client.
+    // The client discovers its public IP address and port number and then tries to establish a direct connection with another device across the internet
+    #stunServers = {urls:['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']};
     #isCaller = false;
     #eventHandlers = {
         onicecandidateerror: (e) => {
@@ -8,11 +10,22 @@ class RtcConnHandler {
         }
     }
 
-    constructor() {
+    /**
+     *
+     * @param config {{
+     *     stunServers: RTCIceServer[]
+     *     turnServers: RTCIceServer[]
+     * }}
+     */
+    constructor(config) {
+        let iceServers = [config.stunServers ?? this.#stunServers];
+        //The TURN server allocates a public IP address and port number for the client. This allocation acts as a relay endpoint through which all the communication will be sent and received.
+        // With TURN servers you get guaranteed connectivity, dispite of several NAT and firewall restrictions include deep packet inspection firewalls that block most traffic you get the connectivity with TURN servers
+        if (config.turnServers) {
+            iceServers.push(config.turnServers);
+        }
         const servers = {
-            iceServers: [{
-                urls: this.#ices,
-            }],
+            iceServers: iceServers,
             iceCandidatePoolSize: 10,
         };
         this.rtcConn = new RTCPeerConnection(servers);

@@ -46,13 +46,17 @@ export class Server {
         this.activeSockets.push(socket.id);
 
         socket.emit("update-user-list", {
-          users: this.activeSockets.filter(
-            existingSocket => existingSocket !== socket.id
-          )
+          data:{
+            users: this.activeSockets.filter(
+              existingSocket => existingSocket !== socket.id
+            )
+          }
         });
 
         socket.broadcast.emit("update-user-list", {
-          users: [socket.id]
+          data: {
+            users: [socket.id]
+          }
         });
       }
 
