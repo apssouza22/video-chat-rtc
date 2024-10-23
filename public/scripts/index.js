@@ -17,11 +17,7 @@ class VideoChatApp {
         this.#addSocketListeners();
     }
 
-    async start() {
-        let localUserMediaStream = await window.navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: true
-        });
+    async start(localUserMediaStream) {
         this.#localVideo.srcObject = localUserMediaStream;
         this.#localUserMediaStream = localUserMediaStream;
     }
@@ -187,7 +183,18 @@ let app = new VideoChatApp({
     remoteVideo: document.getElementById("remote-video"),
     // remoteVideo: document.getElementById("remote-audio"), We can use this for audio as well
     userListComponent: new UserListComponent(document.getElementById("active-user-container")),
-    socket: new SocketIo(new WebSocket('ws://localhost:8881/ws'))
+    socket: new SocketIo(new WebSocket('ws://localhost:8881/ws')),
 });
-app.start();
+
+const  init = async  () => {
+    const localUserMediaStream = await window.navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true
+    });
+    app.start(localUserMediaStream);
+    const server = new ServerConnHandler(localUserMediaStream);
+    await server.connect(document.getElementById("server-video"));
+};
+
+init()
 

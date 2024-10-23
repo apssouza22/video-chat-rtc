@@ -1,6 +1,9 @@
+import logging
+
 from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
 from aiortc.contrib.media import MediaPlayer
 
+logger = logging.getLogger("rtc")
 
 class RTCConnectionHandler:
 

@@ -11,6 +11,26 @@ The WebRTC peer-to-peer communication requires an ICE server to establish a conn
 You can try the UI [here](https://apssouza22.github.io/video-chat-rtc/public/)    
 
 ## Getting started
+
+First install the required packages:
+
+```code-block:: console
+
+    $ pip install aiohttp aiortc opencv-python aiohttp_cors
+```
+
+When you start the example, it will create an HTTP server which you
+can connect to from your browser:
+
+```code-block:: console
+    $ cd python 
+    $ python server.py
+```
+
+### Node js version
+
+We provide a Node js version of the signaling server. To run the Node js version, follow the steps below:
+
 - `npm install`
 - `npm start`
 - Access the http://localhost:8881 from two different browsers

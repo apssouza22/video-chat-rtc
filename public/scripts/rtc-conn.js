@@ -2,7 +2,7 @@ class RtcConnHandler {
     #hasAnswerReceived;
     // STUN is a lightweight protocol that is used to discover the Public IP address and Port number of a client.
     // The client discovers its public IP address and port number and then tries to establish a direct connection with another device across the internet
-    #stunServers = {urls:['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']};
+    #stunServers = {urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']};
     #isCaller = false;
     #eventHandlers = {
         onicecandidateerror: (e) => {
@@ -27,6 +27,7 @@ class RtcConnHandler {
         const servers = {
             iceServers: iceServers,
             iceCandidatePoolSize: 10,
+            sdpSemantics: 'unified-plan',
         };
         this.rtcConn = new RTCPeerConnection(servers);
         this.rtcConn.ontrack = (e) => {
@@ -38,6 +39,20 @@ class RtcConnHandler {
         this.rtcConn.onicecandidate = (e) => {
             this.#eventHandlers["onicecandidate"](e.candidate);
         }
+        this.rtcConn.onicegatheringstatechange = (e) => {
+            console.log(this.rtcConn.iceGatheringState);
+            if (this.rtcConn.iceGatheringState === 'complete') {
+                if (this.#eventHandlers["icecomplete"])
+                    this.#eventHandlers["icecomplete"](e);
+            }
+        }
+        this.rtcConn.onsignalingstatechange = () => {
+            console.log(this.rtcConn.signalingState);
+        }
+    }
+
+    onIceComplete(iceCompleteListener) {
+        this.#eventHandlers["icecomplete"] = iceCompleteListener
     }
 
     onTrack(trackListener) {
@@ -72,6 +87,11 @@ class RtcConnHandler {
 
     async setAnswer(desc) {
         this.#hasAnswerReceived = desc;
+        if (desc instanceof RTCSessionDescription) {
+            await this.rtcConn.setRemoteDescription(desc);
+            return
+        }
+
         let rtcSessionDescription = new RTCSessionDescription(desc);
         await this.rtcConn.setRemoteDescription(rtcSessionDescription);
     }
