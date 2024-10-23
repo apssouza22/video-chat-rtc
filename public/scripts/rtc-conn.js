@@ -31,7 +31,7 @@ class RtcConnHandler {
         };
         this.rtcConn = new RTCPeerConnection(servers);
         this.rtcConn.ontrack = (e) => {
-            this.#eventHandlers["ontrack"](e.streams[0]);
+            this.#eventHandlers["ontrack"](e);
         }
         this.rtcConn.onicecandidateerror = (e) => {
             this.#eventHandlers["onicecandidateerror"](e);

@@ -7,13 +7,16 @@ class ServerConnHandler {
     }
 
 
-    #createRtcConnection(videoOutput) {
+    #createRtcConnection(videoOutput, audioOutput) {
         const rtcConn = new RtcConnHandler({});
-        rtcConn.onTrack((stream) => {
-            if (videoOutput.srcObject !== stream) {
-                videoOutput.srcObject = stream;
-                console.log('received remote stream');
+        rtcConn.onTrack((evt) => {
+            if (evt.track.kind === 'video') {
+                videoOutput.srcObject = evt.streams[0];
+                return
             }
+            //TODO: Disabled audio output for now.
+            // audioOutput.srcObject = evt.streams[0];
+
         });
         rtcConn.onIceCandidate(async (candidate) => {
             if (candidate) {
@@ -38,8 +41,8 @@ class ServerConnHandler {
         });
     }
 
-    async connect(videoOutput) {
-        const conn = this.#createRtcConnection(videoOutput)
+    async connect(videoOutput, audioOutput) {
+        const conn = this.#createRtcConnection(videoOutput, audioOutput)
 
         conn.onIceComplete(async (e) => {
             console.log("Ice complete")

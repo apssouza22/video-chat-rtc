@@ -46,9 +46,9 @@ class VideoChatApp {
 
     #createRtcConnection(remoteVideo, socketId) {
         let rtcConn = new RtcConnHandler({});
-        rtcConn.onTrack((stream) => {
-            if (remoteVideo.srcObject !== stream) {
-                remoteVideo.srcObject = stream;
+        rtcConn.onTrack((evt) => {
+            if (remoteVideo.srcObject !== evt.streams[0]) {
+                remoteVideo.srcObject = evt.streams[0];
                 console.log('received remote stream');
             }
         });
@@ -193,7 +193,10 @@ const  init = async  () => {
     });
     app.start(localUserMediaStream);
     const server = new ServerConnHandler(localUserMediaStream);
-    await server.connect(document.getElementById("server-video"));
+    await server.connect(
+        document.getElementById("server-video"),
+        document.getElementById("remote-audio")
+    );
 };
 
 init()
