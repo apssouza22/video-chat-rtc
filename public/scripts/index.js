@@ -8,6 +8,7 @@ class VideoChatApp {
      * @type {SocketIo}
      */
     #socket;
+    #user;
 
     constructor(config) {
         this.#localVideo = config.localVideo;
@@ -15,6 +16,7 @@ class VideoChatApp {
         this.#remoteVideo = config.remoteVideo;
         this.#setUpUserListComponent(config.userListComponent);
         this.#addSocketListeners();
+        this.#user = config.userId;
     }
 
     async start(localUserMediaStream) {
@@ -66,7 +68,7 @@ class VideoChatApp {
         let rtcConn = this.#createRtcConnection(this.#remoteVideo, socketId)
         const offer = await rtcConn.createOffer()
         console.log("call user", offer)
-        this.#socket.emit("call-user", {offer, to: socketId});
+        this.#socket.emit("call-user", {offer, to: socketId, user: this.#user});
     }
 
     #setUpUserListComponent(userListComponent) {
@@ -178,12 +180,15 @@ async function shareScreen() {
     }
 }
 
+const userId = crypto.randomUUID()
+
 let app = new VideoChatApp({
     localVideo: document.getElementById("local-video"),
     remoteVideo: document.getElementById("remote-video"),
     // remoteVideo: document.getElementById("remote-audio"), We can use this for audio as well
     userListComponent: new UserListComponent(document.getElementById("active-user-container")),
     socket: new SocketIo(new WebSocket('ws://localhost:8881/ws')),
+    userId: userId
 });
 
 const  init = async  () => {
@@ -192,7 +197,7 @@ const  init = async  () => {
         video: true
     });
     app.start(localUserMediaStream);
-    const server = new ServerConnHandler(localUserMediaStream);
+    const server = new ServerConnHandler(localUserMediaStream, userId);
     await server.connect(
         document.getElementById("server-video"),
         document.getElementById("remote-audio")

@@ -42,8 +42,8 @@ class RtcConnHandler {
         this.rtcConn.onicegatheringstatechange = (e) => {
             console.log(this.rtcConn.iceGatheringState);
             if (this.rtcConn.iceGatheringState === 'complete') {
-                if (this.#eventHandlers["icecomplete"])
-                    this.#eventHandlers["icecomplete"](e);
+                if (this.#eventHandlers["onicecomplete"])
+                    this.#eventHandlers["onicecomplete"](e);
             }
         }
         this.rtcConn.onsignalingstatechange = () => {
@@ -52,7 +52,7 @@ class RtcConnHandler {
     }
 
     onIceComplete(iceCompleteListener) {
-        this.#eventHandlers["icecomplete"] = iceCompleteListener
+        this.#eventHandlers["onicecomplete"] = iceCompleteListener
     }
 
     onTrack(trackListener) {

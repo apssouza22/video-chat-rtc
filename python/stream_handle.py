@@ -1,12 +1,11 @@
+import logging
 import uuid
 
-from aiortc import RTCRtpSender, MediaStreamTrack
+from aiortc import RTCRtpSender
 from aiortc.contrib.media import MediaRelay
 
-from rtcconnmanager import RtcConnManager, Channel
-from video_transform import VideoTransformTrack
 from rtcconn import RTCConnectionHandler
-import logging
+from rtcconnmanager import RtcConnManager, Channel
 
 logger = logging.getLogger("stream")
 
@@ -32,6 +31,9 @@ class StreamHandler:
         self.media_player = media_player
 
     async def start(self, params):
+        if "stream_id" in params:
+            self.stream_id = params["stream_id"]
+
         await self.media_recorder.start()
         return await self.conn_handler.create_answer(params)
 

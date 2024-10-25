@@ -11,13 +11,15 @@ logger = logging.getLogger("server")
 
 class SocketConnHandler:
 
-    def __init__(self, conn, sockets: [], conn_manager: RtcConnManager):
+    def __init__(self, conn, sockets: [], socket_to_user_map: {}, conn_manager: RtcConnManager):
         self.conn_manager = conn_manager
         self.active_sockets = sockets
         self.conn = conn
         self.event_listeners = {}
         self.socket_id = id(conn)
+        self.user_id = None
         self.add_event_listeners()
+        self.socket_to_user = socket_to_user_map
 
     def add_event_listeners(self):
         self.event_listeners["ice-candidate"] = self.handle_ice_candidate
@@ -40,6 +42,11 @@ class SocketConnHandler:
     async def handle_call_accepted(self, payload):
         logger.info(f"make-answer: {self.socket_id}")
         target_socket = self.get_socket_conn(payload["to"])
+
+        caller = self.socket_to_user[payload["to"]]
+        logger.info(f"caller: {caller}")
+        self.conn_manager.broadcast(caller)
+
         await target_socket.send_json({
             "event": "answer-made",
             "data": {
@@ -49,9 +56,10 @@ class SocketConnHandler:
         })
 
     async def handle_call_user(self, payload):
-        logger.info(f"call-user: {payload["to"]}")
-        target_socket = self.get_socket_conn(payload["to"])
+        logger.info(f"User {payload["user"]} is calling {payload["to"]}")
+        self.socket_to_user[self.socket_id] = payload["user"]
 
+        target_socket = self.get_socket_conn(payload["to"])
         logger.info(f"target_socket: {target_socket}")
         await target_socket.send_json({
             "event": "call-made",
@@ -132,13 +140,14 @@ class SocketConnHandler:
 
 
 active_sockets = set()
+socket_to_user = {}
 
 
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
-    conn = SocketConnHandler(ws, active_sockets, RtcConnManager.get_instance())
+    conn = SocketConnHandler(ws, active_sockets, socket_to_user, RtcConnManager.get_instance())
     await conn.listener()
     await conn.handle_user_disconnected()
     return ws

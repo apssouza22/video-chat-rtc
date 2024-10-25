@@ -1,9 +1,11 @@
 class ServerConnHandler {
 
     #localUserMediaStream;
+    #userId;
 
-    constructor(userMediaStream) {
+    constructor(userMediaStream, userId) {
         this.#localUserMediaStream = userMediaStream;
+        this.#userId = userId;
     }
 
     #createRtcConnection(videoOutput, audioOutput) {
@@ -32,6 +34,7 @@ class ServerConnHandler {
             body: JSON.stringify({
                 sdp: offer.sdp,
                 type: offer.type,
+                stream_id: this.#userId,
                 video_transform: ""
             }),
             headers: {

@@ -2,9 +2,9 @@ import logging
 
 from aiortc import RTCRtpSender, MediaStreamTrack
 
-from rtcconn import RTCConnectionHandler
 from video_transform import VideoTransformTrack
 
+logger = logging.getLogger("manager")
 
 class Channel:
 
@@ -32,15 +32,14 @@ class RtcConnManager:
         self.channels.pop(channel_id)
 
     def broadcast(self, channel_id):
-        logging.info("Sending video to %d other connections", len(self.channels))
+        logger.info("Sending video to %d other connections", len(self.channels))
         for channel in self.channels.values():
             if channel.id == channel_id:
                 continue
-            logging.info("Adding video track to %s", channel.sender)
-            transform_track = VideoTransformTrack(channel.sender.track)
+            logger.info("Adding video track to %s", channel.sender)
+            # transform_track = VideoTransformTrack(channel.sender.track)
+            transform_track = channel.sender.track
             channel.sender.replaceTrack(transform_track)
 
     def add_channel(self, channel: Channel):
         self.channels[channel.id] = channel
-
-conn_manager = RtcConnManager()
