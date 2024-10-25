@@ -10,6 +10,7 @@ from aiortc.contrib.media import MediaPlayer, MediaRecorder
 import aiohttp_cors
 
 from rtcconn import RTCConnectionHandler
+from rtcconnmanager import RtcConnManager, conn_manager
 from stream_handle import StreamHandler
 from websocket import websocket_handler
 
@@ -39,10 +40,11 @@ async def javascript(request):
     return web.Response(content_type="application/javascript", text=content)
 
 
-async def offer(request):
+async def handle_offer(request):
     params = await request.json()
     rtc = RTCConnectionHandler()
-    stream = StreamHandler(rtc)
+    conn_manager.add_conn(rtc)
+    stream = StreamHandler(rtc, conn_manager)
     pcs.add(stream)
     player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
     file = os.path.join(ROOT, "video.mp4")
@@ -61,6 +63,8 @@ async def offer(request):
     )
 
 
+
+
 async def on_shutdown(app):
     # close peer connections
     coros = [pc.close() for pc in pcs]
@@ -76,7 +80,7 @@ def setup_webserver(params):
     root_route = app.router.add_get("/example", index)
     app.router.add_get("/ws", websocket_handler)
     app.router.add_get("/client.js", javascript)
-    app.router.add_post("/offer", offer)
+    app.router.add_post("/offer", handle_offer)
     set_cors(app, root_route)
     web.run_app(
         app, access_log=None, host=params.host, port=params.port, ssl_context=ssl_context

@@ -1,9 +1,10 @@
 import logging
 
-from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
+from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack, RTCConfiguration, RTCIceServer
 from aiortc.contrib.media import MediaPlayer
 
 logger = logging.getLogger("rtc")
+
 
 class RTCConnectionHandler:
 
@@ -12,7 +13,10 @@ class RTCConnectionHandler:
         self.on_connection_state_change_fn = None
         self.on_track_end_fn = None
         self.on_track_fn = None
-        self.conn = RTCPeerConnection()
+        rtc_configuration = RTCConfiguration(iceServers=[
+            RTCIceServer(urls="stun:stun.l.google.com:19302")
+        ])
+        self.conn = RTCPeerConnection(rtc_configuration)
         self.conn.on("datachannel", self._on_datachannel)
         self.conn.on("connectionstatechange", self._on_connectionstatechange)
         self.conn.on("track", self._on_track)
@@ -47,7 +51,6 @@ class RTCConnectionHandler:
     async def _on_connectionstatechange(self):
         await self.on_connection_state_change_fn()
 
-
     def _on_track(self, track):
         self.on_track_fn(track)
 
@@ -61,3 +64,8 @@ class RTCConnectionHandler:
         answer = await self.conn.createAnswer()
         await self.conn.setLocalDescription(answer)
         return answer
+
+    async def create_offer(self):
+        offer = await self.conn.createOffer()
+        await self.conn.setLocalDescription(offer)
+        return offer

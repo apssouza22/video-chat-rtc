@@ -17,6 +17,8 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
+        # return frame
+
         img = frame.to_ndarray(format="bgr24")
 
         # Flip the image horizontally to create a mirror effect

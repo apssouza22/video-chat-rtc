@@ -3,13 +3,16 @@ import logging
 
 from aiohttp import web, WSMsgType
 
+from rtcconnmanager import RtcConnManager, conn_manager
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("server")
 
 
 class SocketConnHandler:
 
-    def __init__(self, conn, sockets: []):
+    def __init__(self, conn, sockets: [], conn_manager: RtcConnManager):
+        self.conn_manager = conn_manager
         self.active_sockets = sockets
         self.conn = conn
         self.event_listeners = {}
@@ -18,7 +21,7 @@ class SocketConnHandler:
 
     def add_event_listeners(self):
         self.event_listeners["ice-candidate"] = self.handle_ice_candidate
-        self.event_listeners["make-answer"] = self.handle_make_answer
+        self.event_listeners["make-answer"] = self.handle_call_accepted
         self.event_listeners["call-user"] = self.handle_call_user
         self.event_listeners["reject-call"] = self.handle_reject_call
         self.event_listeners["join"] = self.handle_user_connected
@@ -34,7 +37,7 @@ class SocketConnHandler:
             }
         })
 
-    async def handle_make_answer(self, payload):
+    async def handle_call_accepted(self, payload):
         logger.info(f"make-answer: {self.socket_id}")
         target_socket = self.get_socket_conn(payload["to"])
         await target_socket.send_json({
@@ -135,7 +138,7 @@ async def websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
-    conn = SocketConnHandler(ws, active_sockets)
+    conn = SocketConnHandler(ws, active_sockets, conn_manager)
     await conn.listener()
     await conn.handle_user_disconnected()
     return ws
