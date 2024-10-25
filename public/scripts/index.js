@@ -56,7 +56,7 @@ class VideoChatApp {
         });
         rtcConn.onIceCandidate((e) => {
             if (e.candidate) {
-                this.#socket.emit("ice-candidate", {candidate: e.candidate, to: socketId});
+                this.#socket.emit("ice-candidate-received", {candidate: e.candidate, to: socketId});
             }
         });
         rtcConn.addStream(this.#localUserMediaStream);
@@ -68,7 +68,7 @@ class VideoChatApp {
         let rtcConn = this.#createRtcConnection(this.#remoteVideo, socketId)
         const offer = await rtcConn.createOffer()
         console.log("call user", offer)
-        this.#socket.emit("call-user", {offer, to: socketId, user: this.#user});
+        this.#socket.emit("call-made", {offer, to: socketId, user: this.#user});
     }
 
     #setUpUserListComponent(userListComponent) {
@@ -86,7 +86,7 @@ class VideoChatApp {
                 console.log(e)
             }
         });
-        this.#socket.on("ice-candidate-post", async data => {
+        this.#socket.on("ice-candidate-received", async data => {
             for (let i = this.#rtcConns.length - 1; i >= 0; i--) {
                 try {
                     await this.#rtcConns[i].addIceCandidate(data.candidate)
@@ -101,7 +101,7 @@ class VideoChatApp {
         this.#socket.on("update-user-list", ({users}) => {
             this.#userListComponent.updateUserList(users);
         });
-        this.#socket.on("remove-user", ({socketId}) => {
+        this.#socket.on("user-removed", ({socketId}) => {
             const elToRemove = document.getElementById(socketId);
             if (elToRemove) {
                 elToRemove.remove();
@@ -113,7 +113,7 @@ class VideoChatApp {
         console.log("call made", data)
         let rtcConn = this.#createRtcConnection(this.#remoteVideo, data.socket)
         const answer = await rtcConn.createAnswer(data.offer)
-        this.#socket.emit("make-answer", {answer, to: data.socket});
+        this.#socket.emit("answer-made", {answer, to: data.socket});
     }
 }
 

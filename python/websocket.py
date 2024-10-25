@@ -22,17 +22,17 @@ class SocketConnHandler:
         self.socket_to_user = socket_to_user_map
 
     def add_event_listeners(self):
-        self.event_listeners["ice-candidate"] = self.handle_ice_candidate
-        self.event_listeners["make-answer"] = self.handle_call_accepted
-        self.event_listeners["call-user"] = self.handle_call_user
-        self.event_listeners["reject-call"] = self.handle_reject_call
+        self.event_listeners["ice-candidate-received"] = self.handle_ice_candidate
+        self.event_listeners["answer-made"] = self.handle_call_accepted
+        self.event_listeners["call-made"] = self.handle_call_user
+        self.event_listeners["call-rejected"] = self.handle_reject_call
         self.event_listeners["join"] = self.handle_user_connected
 
     async def handle_ice_candidate(self, payload):
         logger.info(f"ice-candidate: {self.socket_id}")
         target_socket = self.get_socket_conn(payload["to"])
         await target_socket.send_json({
-            "event": "ice-candidate-post",
+            "event": "ice-candidate-received",
             "data": {
                 "socket": self.socket_id,
                 "candidate": payload["candidate"]
@@ -120,7 +120,7 @@ class SocketConnHandler:
 
         for s in self.active_sockets:
             await s.send_json({
-                "event": "remove-user",
+                "event": "user-removed",
                 "data": {
                     "socketId": self.socket_id
                 }
