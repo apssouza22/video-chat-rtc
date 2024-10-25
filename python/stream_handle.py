@@ -71,9 +71,6 @@ class StreamHandler:
             self.conn_manager.add_channel(Channel(sender, track1, self.stream_id))
             self.conn_manager.broadcast(self.stream_id)
 
-
-
-
     async def _on_ended(self, track):
         self._log_info("Track %s ended", track.kind)
         await self.media_recorder.stop()

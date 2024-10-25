@@ -54,9 +54,9 @@ class VideoChatApp {
                 console.log('received remote stream');
             }
         });
-        rtcConn.onIceCandidate((candidate) => {
-            if (candidate) {
-                this.#socket.emit("ice-candidate", {candidate, to: socketId});
+        rtcConn.onIceCandidate((e) => {
+            if (e.candidate) {
+                this.#socket.emit("ice-candidate", {candidate: e.candidate, to: socketId});
             }
         });
         rtcConn.addStream(this.#localUserMediaStream);

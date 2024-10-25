@@ -4,11 +4,7 @@ class RtcConnHandler {
     // The client discovers its public IP address and port number and then tries to establish a direct connection with another device across the internet
     #stunServers = {urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']};
     #isCaller = false;
-    #eventHandlers = {
-        onicecandidateerror: (e) => {
-            console.log(e);
-        }
-    }
+    #eventHandlers = {}
 
     /**
      *
@@ -30,17 +26,15 @@ class RtcConnHandler {
             sdpSemantics: 'unified-plan',
         };
         this.rtcConn = new RTCPeerConnection(servers);
-        this.rtcConn.ontrack = (e) => {
-            this.#eventHandlers["ontrack"](e);
-        }
+        this.addEventListeners();
+    }
+
+    addEventListeners() {
         this.rtcConn.onicecandidateerror = (e) => {
-            this.#eventHandlers["onicecandidateerror"](e);
+            console.log(e);
         }
-        this.rtcConn.onicecandidate = (e) => {
-            this.#eventHandlers["onicecandidate"](e.candidate);
-        }
+
         this.rtcConn.onicegatheringstatechange = (e) => {
-            console.log(this.rtcConn.iceGatheringState);
             if (this.rtcConn.iceGatheringState === 'complete') {
                 if (this.#eventHandlers["onicecomplete"])
                     this.#eventHandlers["onicecomplete"](e);
@@ -56,11 +50,11 @@ class RtcConnHandler {
     }
 
     onTrack(trackListener) {
-        this.#eventHandlers["ontrack"] = trackListener;
+        this.rtcConn.ontrack = trackListener;
     }
 
     onIceCandidate(sendCandidate) {
-        this.#eventHandlers["onicecandidate"] = sendCandidate;
+        this.rtcConn.onicecandidate = sendCandidate;
     }
 
     async createOffer() {
@@ -137,10 +131,6 @@ class RtcConnHandler {
             return;
         }
 
-        if (this.#isCaller && this.#hasAnswerReceived) {
-            await this.rtcConn.addIceCandidate(candidate);
-            return
-        }
         await this.rtcConn.addIceCandidate(candidate);
     }
 }

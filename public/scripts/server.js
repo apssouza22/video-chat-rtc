@@ -20,9 +20,9 @@ class ServerConnHandler {
             // audioOutput.srcObject = evt.streams[0];
 
         });
-        rtcConn.onIceCandidate(async (candidate) => {
-            if (candidate) {
-                await rtcConn.addIceCandidate(candidate)
+        rtcConn.onIceCandidate(async (e) => {
+            if (e.candidate) {
+                await rtcConn.addIceCandidate(e.candidate)
             }
         });
         rtcConn.addStream(this.#localUserMediaStream);
@@ -48,7 +48,6 @@ class ServerConnHandler {
         const conn = this.#createRtcConnection(videoOutput, audioOutput)
 
         conn.onIceComplete(async (e) => {
-            console.log("Ice complete")
             const resp = await this.sendOffer(conn.rtcConn.localDescription)
             const answer = await resp.json()
             await conn.setAnswer(answer)
