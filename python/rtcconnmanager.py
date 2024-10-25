@@ -1,32 +1,46 @@
+import logging
+
+from aiortc import RTCRtpSender, MediaStreamTrack
+
 from rtcconn import RTCConnectionHandler
+from video_transform import VideoTransformTrack
+
+
+class Channel:
+
+    def __init__(self, sender: RTCRtpSender, track: MediaStreamTrack, channel_id: str):
+        self.sender = sender
+        self.track = track
+        self.id = channel_id
 
 
 class RtcConnManager:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
     def __init__(self):
-        self.active_conns = []
-        self.active_senders = []
+        if not hasattr(self, 'initialized'):
+            self.channels = dict[str, Channel]()
+            self.initialized = True
 
-    def add_conn(self, conn):
-        self.active_conns.append(conn)
+    def remove_channel(self, channel_id):
+        self.channels.pop(channel_id)
 
-    def add_sender(self, sender):
-        self.active_senders.append(sender)
+    def broadcast(self, channel_id):
+        logging.info("Sending video to %d other connections", len(self.channels))
+        for channel in self.channels.values():
+            if channel.id == channel_id:
+                continue
+            logging.info("Adding video track to %s", channel.sender)
+            transform_track = VideoTransformTrack(channel.sender.track)
+            channel.sender.replaceTrack(transform_track)
 
-    def remove_conn(self, conn):
-        self.active_conns.remove(conn)
-
-    def get_conn(self, conn_id) -> RTCConnectionHandler:
-        for c in self.active_conns:
-            if c == conn_id:
-                return c
-        return None
-
-    def get_conns_but(self, rtc):
-        return [c for c in self.active_conns if c != rtc]
-
-    def get_senders_but(self, sender):
-        return [s for s in self.active_senders if s != sender]
-
+    def add_channel(self, channel: Channel):
+        self.channels[channel.id] = channel
 
 conn_manager = RtcConnManager()

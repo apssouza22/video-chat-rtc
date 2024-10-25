@@ -5,12 +5,12 @@ import logging
 import os
 import ssl
 
+import aiohttp_cors
 from aiohttp import web
 from aiortc.contrib.media import MediaPlayer, MediaRecorder
-import aiohttp_cors
 
 from rtcconn import RTCConnectionHandler
-from rtcconnmanager import RtcConnManager, conn_manager
+from rtcconnmanager import RtcConnManager
 from stream_handle import StreamHandler
 from websocket import websocket_handler
 
@@ -43,8 +43,7 @@ async def javascript(request):
 async def handle_offer(request):
     params = await request.json()
     rtc = RTCConnectionHandler()
-    conn_manager.add_conn(rtc)
-    stream = StreamHandler(rtc, conn_manager)
+    stream = StreamHandler(rtc, RtcConnManager.get_instance())
     pcs.add(stream)
     player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
     file = os.path.join(ROOT, "video.mp4")

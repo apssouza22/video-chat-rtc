@@ -3,7 +3,7 @@ import logging
 
 from aiohttp import web, WSMsgType
 
-from rtcconnmanager import RtcConnManager, conn_manager
+from rtcconnmanager import RtcConnManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("server")
@@ -138,7 +138,7 @@ async def websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
-    conn = SocketConnHandler(ws, active_sockets, conn_manager)
+    conn = SocketConnHandler(ws, active_sockets, RtcConnManager.get_instance())
     await conn.listener()
     await conn.handle_user_disconnected()
     return ws

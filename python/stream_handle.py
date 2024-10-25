@@ -1,9 +1,9 @@
 import uuid
 
-from aiortc import RTCRtpSender
+from aiortc import RTCRtpSender, MediaStreamTrack
 from aiortc.contrib.media import MediaRelay
 
-from rtcconnmanager import RtcConnManager
+from rtcconnmanager import RtcConnManager, Channel
 from video_transform import VideoTransformTrack
 from rtcconn import RTCConnectionHandler
 import logging
@@ -49,7 +49,7 @@ class StreamHandler:
             self._log_info("RTC Connection failed")
 
         if self.rtc.connectionState == "closed":
-            self.conn_manager.remove_conn(self.conn_handler)
+            self.conn_manager.remove_channel(self.stream_id)
             self._log_info("RTC Connection closed")
 
     def _on_track(self, track):
@@ -62,24 +62,12 @@ class StreamHandler:
         elif track.kind == "video":
             # Duplicate incoming video track so different transforms can be applied
             track2 = self.relay.subscribe(track)
+            track1 = self.relay.subscribe(track)
             self.media_recorder.addTrack(track2)
 
-            track1 = self.relay.subscribe(track)
-            transform_track = VideoTransformTrack(track1)
-
-            sender:RTCRtpSender = self.rtc.addTrack(track2)
-
-            conns = self.conn_manager.get_senders_but(self.conn_handler)
-            if len(conns) == 0:
-                conn = self.conn_manager.get_conn(self.conn_handler)
-                self.conn_manager.add_sender(sender)
-                return
-
-
-            self._log_info("Sending video to %d other connections", len(conns))
-            for sender in conns:
-                self._log_info("Adding video track to %s", sender)
-                sender.replaceTrack(transform_track)
+            sender:RTCRtpSender = self.rtc.addTrack(track1)
+            self.conn_manager.add_channel(Channel(sender, track1, self.stream_id))
+            self.conn_manager.broadcast(self.stream_id)
 
 
 
@@ -93,3 +81,6 @@ class StreamHandler:
         self.conn_handler.add_on_message(self._on_message)
         self.conn_handler.add_on_track_end(self._on_ended)
         self.conn_handler.add_on_connection_state_change(self._on_connectionstatechange)
+
+
+
