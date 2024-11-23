@@ -179,8 +179,7 @@ async function shareScreen() {
         console.log(e)
     }
 }
-
-const userId = crypto.randomUUID()
+const userId = Date.now() + "";
 
 let app = new VideoChatApp({
     localVideo: document.getElementById("local-video"),
