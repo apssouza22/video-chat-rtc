@@ -1,6 +1,6 @@
-# Video-chat-app
+# Web conference
 
-This is a video chat app using WebRTC and WebSockets. It is built using Node.js, Express, and Socket.io.
+ A scalable, real-time web conferencing platform using WebRTC and WebSockets for low-latency audio, video, and file sharing across peer-to-peer and multi-user broadcast scenarios.
 
 We implemented a signaling server using Socket.io to exchange the WebRTC signaling messages (offer, answer, and candidate) between the peers. 
 The signaling server is also responsible for broadcasting the list of active users to all connected users.
